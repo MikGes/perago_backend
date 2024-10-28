@@ -13,9 +13,9 @@ export class PositionService {
                     take: Number(pageSize),
                     orderBy: { name: 'asc' },
                     include: {
-                        parent: { // Include the parent position
+                        parent: { //include the parent position
                             select: {
-                                name: true, // Select only the parent's name
+                                name: true,//select only the parent's name.
                             },
                         },
                     },
@@ -26,7 +26,7 @@ export class PositionService {
             return {
                 positions: positions.map(position => ({
                     ...position,
-                    parentPosition: position.parent ? position.parent.name : 'N/A', // Display parent name or 'N/A' if no parent
+                    parentPosition: position.parent ? position.parent.name : 'N/A',
                 })),
                 total,
                 page,
@@ -52,9 +52,9 @@ export class PositionService {
                 data: {
                     name,
                     description,
-                    parent: parentId ? { connect: { id: parentId } } : undefined, // Connect to parent if parentId exists
+                    parent: parentId ? { connect: { id: parentId } } : undefined, //connect to parent if parentId exists
                 },
-                include: { children: true }, // Optionally, include children for verification
+                include: { children: true },
             });
             return true
         } catch (error) {
@@ -183,10 +183,10 @@ export class PositionService {
         }
     }
     async getEligibleParents(positionId: string) {
-        // Get the list of descendants of the position being edited
+        //et the list of descendants of the position being edited
         const descendants = await this.getDescendants(positionId);
 
-        // Fetch positions excluding the current position and its descendants
+        //fetch positions excluding the current position and its descendants
         const eligibleParents = await this.prisma.position.findMany({
             where: {
                 NOT: {
