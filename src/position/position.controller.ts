@@ -39,5 +39,9 @@ export class PositionController {
     async getParentExist(@Param("name") name: string) {
         return this.positionService.getParentExist(name)
     }
+    @Get('get-eligible-parents/:positionId')
+    async getEligibleParents(@Param("positionId") positionId: any) {
+        return this.positionService.getEligibleParents(positionId)
+    }
 
 }

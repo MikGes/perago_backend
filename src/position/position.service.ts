@@ -5,33 +5,37 @@ import { PrismaService } from 'src/prisma.service';
 export class PositionService {
     constructor(private prisma: PrismaService) { }
     async getPaginatedPositions(page: number = 1, pageSize: number = 10) {
-        const skip = (page - 1) * pageSize;
-        const [positions, total] = await this.prisma.$transaction([
-            this.prisma.position.findMany({
-                skip,
-                take: Number(pageSize),
-                orderBy: { name: 'asc' },
-                include: {
-                    parent: { // Include the parent position
-                        select: {
-                            name: true, // Select only the parent's name
+        try {
+            const skip = (page - 1) * pageSize;
+            const [positions, total] = await this.prisma.$transaction([
+                this.prisma.position.findMany({
+                    skip,
+                    take: Number(pageSize),
+                    orderBy: { name: 'asc' },
+                    include: {
+                        parent: { // Include the parent position
+                            select: {
+                                name: true, // Select only the parent's name
+                            },
                         },
                     },
-                },
-            }),
-            this.prisma.position.count(),
-        ]);
+                }),
+                this.prisma.position.count(),
+            ]);
 
-        return {
-            positions: positions.map(position => ({
-                ...position,
-                parentPosition: position.parent ? position.parent.name : 'N/A', // Display parent name or 'N/A' if no parent
-            })),
-            total,
-            page,
-            pageSize,
-            totalPages: Math.ceil(total / pageSize),
-        };
+            return {
+                positions: positions.map(position => ({
+                    ...position,
+                    parentPosition: position.parent ? position.parent.name : 'N/A', // Display parent name or 'N/A' if no parent
+                })),
+                total,
+                page,
+                pageSize,
+                totalPages: Math.ceil(total / pageSize),
+            };
+        } catch (error) {
+            return { message: "Error in fetching data" }
+        }
     }
 
     async createPosition(data: any) {
@@ -178,4 +182,42 @@ export class PositionService {
             return { message: "Can't update position", found: true }
         }
     }
+    async getEligibleParents(positionId: string) {
+        // Get the list of descendants of the position being edited
+        const descendants = await this.getDescendants(positionId);
+
+        // Fetch positions excluding the current position and its descendants
+        const eligibleParents = await this.prisma.position.findMany({
+            where: {
+                NOT: {
+                    id: {
+                        in: descendants.map(pos => pos.id).concat(positionId),
+                    },
+                },
+            },
+            select: {
+                id: true,
+                name: true,
+            },
+        });
+
+        return eligibleParents;
+    }
+
+    // Recursive function to get all descendants of a position
+    async getDescendants(positionId: string, descendants: any[] = []): Promise<any[]> {
+        const children = await this.prisma.position.findMany({
+            where: {
+                parentId: positionId,
+            },
+        });
+
+        for (const child of children) {
+            descendants.push(child);
+            await this.getDescendants(child.id, descendants);
+        }
+
+        return descendants;
+    }
+
 }
